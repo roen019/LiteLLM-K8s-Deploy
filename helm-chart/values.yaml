@@ -55,30 +55,29 @@ litellm:
   # Environment variables
   env: {}
   
-  # Master key for LiteLLM (will be read from secret)
+  # Master key for LiteLLM (will be read from secret created by External Secrets)
   masterKeySecret:
-    name: "litellm-admin-auth"
+    name: "litellm-admin-auth"  # This will be created by External Secrets Operator
     key: "master-key"
   
   # Configuration file
   config:
     enabled: true
-    # Base configuration - can be overridden in deployment repo
+    # Minimal base configuration - model_list should be in deployment repo
     content: |
-      model_list:
-        - model_name: gpt-3.5-turbo
-          litellm_params:
-            model: gpt-3.5-turbo
-            api_key: os.environ/OPENAI_API_KEY
-      
       general_settings:
         master_key: os.environ/LITELLM_MASTER_KEY
 
-  # Secrets configuration (references to SealedSecrets)
+  # Secrets configuration (references to secrets created by External Secrets Operator)
   secrets:
-    - name: "litellm-api-keys"
+    - name: "litellm-api-keys"  # Created by External Secrets from Azure Key Vault
       keys:
         - "openai-api-key"
-    - name: "litellm-admin-auth"
+        - "anthropic-api-key"
+        - "azure-api-key"
+        - "azure-api-base"
+        - "google-api-key"
+    - name: "litellm-admin-auth"  # Created by External Secrets from Azure Key Vault
       keys:
         - "master-key"
+        - "jwt-secret"

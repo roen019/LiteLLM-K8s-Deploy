@@ -1,0 +1,109 @@
+---
+# SecretStore für Azure Key Vault
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: azure-keyvault-store
+  namespace: litellm
+spec:
+  provider:
+    azurekv:
+      url: "https://your-keyvault-name.vault.azure.net/"
+      authType: WorkloadIdentity
+      identityId: "your-user-assigned-identity-client-id"  # Azure Managed Identity
+
+---
+# External Secret für LiteLLM Master Key
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: litellm-master-key-external
+  namespace: litellm
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-keyvault-store
+    kind: SecretStore
+  target:
+    name: litellm-admin-auth
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        master-key: "{{ .masterkey }}"
+        jwt-secret: "{{ .jwtsecret }}"
+  data:
+    - secretKey: masterkey
+      remoteRef:
+        key: "litellm-master-key"  # Name im Azure Key Vault
+    - secretKey: jwtsecret
+      remoteRef:
+        key: "litellm-jwt-secret"  # Name im Azure Key Vault
+
+---
+# External Secret für API Keys
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: litellm-api-keys-external
+  namespace: litellm
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-keyvault-store
+    kind: SecretStore
+  target:
+    name: litellm-api-keys
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        openai-api-key: "{{ .openaikey }}"
+        anthropic-api-key: "{{ .anthropickey }}"
+        azure-api-key: "{{ .azurekey }}"
+        azure-api-base: "{{ .azurebase }}"
+        google-api-key: "{{ .googlekey }}"
+  data:
+    - secretKey: openaikey
+      remoteRef:
+        key: "openai-api-key"
+    - secretKey: anthropickey
+      remoteRef:
+        key: "anthropic-api-key"
+    - secretKey: azurekey
+      remoteRef:
+        key: "azure-openai-key"
+    - secretKey: azurebase
+      remoteRef:
+        key: "azure-openai-endpoint"
+    - secretKey: googlekey
+      remoteRef:
+        key: "google-ai-key"
+
+---
+# External Secret für Database Credentials
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: litellm-db-credentials-external
+  namespace: litellm
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: azure-keyvault-store
+    kind: SecretStore
+  target:
+    name: litellm-db-credentials
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        postgres-password: "{{ .postgrespassword }}"
+        user-password: "{{ .userpassword }}"
+  data:
+    - secretKey: postgrespassword
+      remoteRef:
+        key: "postgres-admin-password"
+    - secretKey: userpassword
+      remoteRef:
+        key: "litellm-db-user-password"

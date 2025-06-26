@@ -18,7 +18,7 @@ spec:
     - name: litellm-config
       namespace: litellm
   values:
-    replicaCount: 2
+    replicaCount: 1  # Reduziert für lokales Testing
     
     image:
       repository: ghcr.io/berriai/litellm
@@ -26,42 +26,31 @@ spec:
       pullPolicy: Always
     
     service:
-      type: ClusterIP
+      type: NodePort  # Für lokalen Zugriff
       port: 4000
     
     ingress:
       enabled: true
       className: "nginx"
-      annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
-        nginx.ingress.kubernetes.io/ssl-redirect: "true"
       hosts:
-        - host: litellm.yourdomain.com
+        - host: litellm.local  # Lokale Domain
           paths:
             - path: /
               pathType: Prefix
-      tls:
-        - secretName: litellm-tls
-          hosts:
-            - litellm.yourdomain.com
     
-    # Enable PostgreSQL with SealedSecrets
+    # PostgreSQL für lokales Testing
     postgresql:
       enabled: true
       auth:
         username: litellm
         database: litellm
         existingSecret: "litellm-db-credentials"
-        secretKeys:
-          adminPasswordKey: "postgres-password"
-          userPasswordKey: "user-password"
       primary:
         persistence:
           enabled: true
-          size: 20Gi
+          size: 5Gi  # Kleiner für lokales Testing
     
     litellm:
-      # Use SealedSecrets
       masterKeySecret:
         name: "litellm-admin-auth"
         key: "master-key"
@@ -71,9 +60,6 @@ spec:
           keys:
             - "openai-api-key"
             - "anthropic-api-key"
-            - "azure-api-key"
-            - "azure-api-base"
-            - "google-api-key"
         - name: "litellm-admin-auth"
           keys:
             - "master-key"
@@ -83,20 +69,16 @@ spec:
             - "postgres-password"
             - "user-password"
       
-      # Use external ConfigMap
       config:
         enabled: false
     
     resources:
       limits:
-        cpu: 1000m
-        memory: 1Gi
-      requests:
-        cpu: 500m
+        cpu: 500m    # Reduziert für lokales Testing
         memory: 512Mi
+      requests:
+        cpu: 200m
+        memory: 256Mi
     
     autoscaling:
-      enabled: true
-      minReplicas: 2
-      maxReplicas: 10
-      targetCPUUtilizationPercentage: 70
+      enabled: false  # Deaktiviert für lokales Testing

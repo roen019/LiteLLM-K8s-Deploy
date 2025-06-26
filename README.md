@@ -31,7 +31,6 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 - Sealed Secrets controller
 - Nginx Ingress Controller
 - Cert-manager (for TLS)
-- Access to LiteLLM Helm chart repository
 
 ## Deployment Steps
 
@@ -40,12 +39,7 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
    kubectl create namespace litellm
    ```
 
-2. **Add Helm repository (if using Helm repository):**
-   ```bash
-   helm repo add litellm-charts https://your-chart-repo.com/
-   ```
-
-3. **Generate and apply sealed secrets:**
+2. **Generate and apply sealed secrets:**
    ```bash
    # For API keys
    echo -n "sk-your-openai-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-api-keys --namespace=litellm
@@ -56,11 +50,14 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
    
    # For admin auth
    echo -n "your-master-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-admin-auth --namespace=litellm
-   echo -n "admin@yourcompany.com" | kubeseal --raw --from-file=/dev/stdin --name=litellm-admin-auth --namespace=litellm
-   echo -n "your-admin-password" | kubeseal --raw --from-file=/dev/stdin --name=litellm-admin-auth --namespace=litellm
+   echo -n "your-jwt-secret" | kubeseal --raw --from-file=/dev/stdin --name=litellm-admin-auth --namespace=litellm
+   
+   # For database credentials
+   echo -n "strong-postgres-password" | kubeseal --raw --from-file=/dev/stdin --name=litellm-db-credentials --namespace=litellm
+   echo -n "strong-user-password" | kubeseal --raw --from-file=/dev/stdin --name=litellm-db-credentials --namespace=litellm
    ```
 
-4. **Apply configurations in order:**
+3. **Apply configurations in order:**
    ```bash
    # Apply SealedSecrets first
    kubectl apply -f sealedsecrets/
@@ -91,9 +88,11 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 
 - **Admin Authentication (`litellm-admin-auth`)**:
   - `master-key`: Master key for API access
-  - `admin-email`: Admin email for UI login
-  - `admin-password`: Admin password for UI login
   - `jwt-secret`: JWT signing secret
+
+- **Database Credentials (`litellm-db-credentials`)**:
+  - `postgres-password`: PostgreSQL admin password
+  - `user-password`: LiteLLM database user password
 
 ### Environment Variables (Auto-mapped)
 
@@ -121,3 +120,118 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 3. Check HelmRelease status: `kubectl get helmrelease -n litellm`
 4. Verify SealedSecrets: `kubectl get sealedsecrets -n litellm`
 5. Check ConfigMaps: `kubectl get configmaps -n litellm`
+
+## Azure Key Vault Setup
+
+### Prerequisites
+1. **External Secrets Operator** installed in cluster
+2. **Azure Key Vault** with secrets stored
+3. **Managed Identity** with Key Vault access
+
+### Azure Key Vault Secrets
+
+Store these secrets in your Azure Key Vault:
+- `litellm-master-key`: Strong master key for LiteLLM
+- `litellm-jwt-secret`: JWT signing secret
+- `openai-api-key`: OpenAI API key
+- `anthropic-api-key`: Anthropic API key
+- `azure-openai-key`: Azure OpenAI API key
+- `azure-openai-endpoint`: Azure OpenAI endpoint URL
+- `google-ai-key`: Google AI Studio API key
+- `postgres-admin-password`: PostgreSQL admin password
+- `litellm-db-user-password`: LiteLLM database user password
+
+### Deployment Steps
+
+1. **Apply External Secrets:**
+   ```bash
+   kubectl apply -f flux/azure-keyvault-integration.yaml
+   ```
+
+2. **Apply ConfigMap:**
+   ```bash
+   kubectl apply -f configmaps/litellm-config.yaml
+   ```
+
+3. **Apply HelmRelease:**
+   ```bash
+   kubectl apply -f flux/helmrelease.yaml
+   ```
+
+4. **Create Admin Users manually via UI:**
+   ```
+   Login URL: https://litellm.yourdomain.com/ui
+   ```
+
+## User Management in Database
+
+### Automatische Speicherung
+Wenn PostgreSQL aktiviert ist, speichert LiteLLM automatisch alle User-Daten:
+
+**Gespeicherte Informationen:**
+- ✅ **User Email & Password** (gehashed)
+- ✅ **API Keys** (generiert und persistent)
+- ✅ **User Roles** (proxy_admin, internal_user, etc.)
+- ✅ **Teams & Permissions**
+- ✅ **Usage Statistics & Logs**
+- ✅ **Rate Limits & Budgets**
+
+### Database Tabellen
+LiteLLM erstellt automatisch diese Tabellen:
+- `litellm_users` - User-Informationen
+- `litellm_keys` - API Keys
+- `litellm_teams` - Team-Management
+- `litellm_usage` - Usage Logs
+- `litellm_budgets` - Budget & Limits
+
+### User über UI erstellen:
+1. **Login** mit Master Key oder Admin Account
+2. **Navigate** zu "Users" → "Add New User"
+3. **Eingeben:**
+   - Email Address
+   - Password
+   - User Role (proxy_admin für Admin-Rechte)
+   - Optional: Teams, Budgets, Rate Limits
+
+### User über API erstellen:
+```bash
+# Admin User erstellen
+curl -X POST "https://litellm.yourdomain.com/user/new" \
+  -H "Authorization: Bearer YOUR_MASTER_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_email": "admin@company.com",
+    "user_role": "proxy_admin",
+    "password": "SecurePassword123!",
+    "max_budget": 100.0,
+    "tpm_limit": 10000,
+    "rpm_limit": 100
+  }'
+```
+
+### Database Zugriff (für Troubleshooting):
+```bash
+# PostgreSQL Shell
+kubectl exec -it litellm-postgresql-0 -n litellm -- psql -U litellm -d litellm
+
+# User anzeigen
+SELECT user_email, user_role, created_at FROM litellm_users;
+
+# API Keys anzeigen
+SELECT key_name, user_id, created_at, expires FROM litellm_keys;
+```
+
+### Vorteile der Database-Integration:
+- 🔒 **Persistent Users** - Überleben Pod-Restarts
+- 📊 **Usage Tracking** - Vollständige Logs und Analytics
+- 👥 **Team Management** - Gruppen-basierte Zugriffskontrollen
+- 💰 **Budget Controls** - Pro-User Spending Limits
+- ⚡ **Rate Limiting** - Pro-User Request Limits
+- 🔄 **API Key Management** - Rotation und Verwaltung
+
+## Security Benefits
+
+✅ **Secrets encrypted with SealedSecrets**  
+✅ **GitOps-friendly secret management**  
+✅ **Database for persistent user storage**  
+✅ **4-6 Admin Users** mit eigenen Passwörtern und API Keys

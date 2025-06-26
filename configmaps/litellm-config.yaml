@@ -33,6 +33,7 @@ data:
     
     general_settings:
       master_key: os.environ/LITELLM_MASTER_KEY
+      database_url: "postgresql://litellm:${USER_PASSWORD}@litellm-postgresql:5432/litellm"
       ui_access_mode: "admin_only"
       enforce_user_param: true
       admin_email: os.environ/ADMIN_EMAIL

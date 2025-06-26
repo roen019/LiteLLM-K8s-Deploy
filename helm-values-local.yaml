@@ -1,0 +1,68 @@
+# Local values for direct helm deployment (Docker Desktop + kubeadm)
+replicaCount: 1
+
+image:
+  repository: ghcr.io/berriai/litellm
+  tag: "main-latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer  # Docker Desktop LoadBalancer support
+  port: 4000
+
+ingress:
+  enabled: false  # Erstmal ohne Ingress für einfacheres Testing
+
+# PostgreSQL für lokales Testing
+postgresql:
+  enabled: true
+  auth:
+    username: litellm
+    database: litellm
+    password: "postgres123"  # Für lokales Testing OK
+    postgresPassword: "postgres123"
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+
+litellm:
+  # Einfache lokale Secrets (nicht für Production!)
+  masterKeySecret:
+    name: "litellm-local-secrets"
+    key: "master-key"
+  
+  secrets:
+    - name: "litellm-local-secrets"
+      keys:
+        - "master-key"
+        - "openai-api-key"
+        - "google-api-key"
+  
+  config:
+    enabled: true
+    content: |
+      model_list:
+        - model_name: gpt-3.5-turbo
+          litellm_params:
+            model: gpt-3.5-turbo
+            api_key: os.environ/OPENAI_API_KEY
+        - model_name: gemini-pro
+          litellm_params:
+            model: gemini/gemini-pro
+            api_key: os.environ/GOOGLE_API_KEY
+      
+      general_settings:
+        master_key: os.environ/LITELLM_MASTER_KEY
+        database_url: "postgresql://litellm:postgres123@litellm-postgresql:5432/litellm"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
