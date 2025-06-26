@@ -1,0 +1,84 @@
+# Default values for litellm
+replicaCount: 1
+
+image:
+  repository: ghcr.io/berriai/litellm
+  pullPolicy: IfNotPresent
+  tag: "main-latest"
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 4000
+  targetPort: 4000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: litellm.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# LiteLLM specific configuration
+litellm:
+  # Environment variables
+  env: {}
+  
+  # Master key for LiteLLM (will be read from secret)
+  masterKeySecret:
+    name: "litellm-admin-auth"
+    key: "master-key"
+  
+  # Configuration file
+  config:
+    enabled: true
+    # Base configuration - can be overridden in deployment repo
+    content: |
+      model_list:
+        - model_name: gpt-3.5-turbo
+          litellm_params:
+            model: gpt-3.5-turbo
+            api_key: os.environ/OPENAI_API_KEY
+      
+      general_settings:
+        master_key: os.environ/LITELLM_MASTER_KEY
+
+  # Secrets configuration (references to SealedSecrets)
+  secrets:
+    - name: "litellm-api-keys"
+      keys:
+        - "openai-api-key"
+    - name: "litellm-admin-auth"
+      keys:
+        - "master-key"

@@ -1,0 +1,87 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: litellm
+  namespace: litellm
+spec:
+  interval: 10m
+  timeout: 5m
+  chart:
+    spec:
+      chart: litellm
+      version: "0.1.0"
+      sourceRef:
+        kind: HelmRepository
+        name: litellm-charts
+        namespace: flux-system
+      interval: 5m
+  dependsOn:
+    - name: litellm-configmap
+      namespace: litellm
+  values:
+    replicaCount: 2
+    
+    image:
+      repository: ghcr.io/berriai/litellm
+      tag: "main-latest"
+      pullPolicy: Always
+    
+    service:
+      type: ClusterIP
+      port: 4000
+    
+    ingress:
+      enabled: true
+      className: "nginx"
+      annotations:
+        cert-manager.io/cluster-issuer: "letsencrypt-prod"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      hosts:
+        - host: litellm.yourdomain.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: litellm-tls
+          hosts:
+            - litellm.yourdomain.com
+    
+    litellm:
+      # Reference enterprise secrets (created separately)
+      masterKeySecret:
+        name: "litellm-admin-auth"
+        key: "master-key"
+      
+      # Override secrets configuration for enterprise environment
+      secrets:
+        - name: "litellm-api-keys"
+          keys:
+            - "openai-api-key"
+            - "anthropic-api-key"
+            - "azure-api-key"
+            - "azure-api-base"
+            - "google-api-key"
+        - name: "litellm-admin-auth"
+          keys:
+            - "master-key"
+            - "admin-email"
+            - "admin-password"
+            - "jwt-secret"
+      
+      # Use external ConfigMap for configuration
+      config:
+        enabled: false  # Disable internal config, use external ConfigMap
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70

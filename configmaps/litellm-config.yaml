@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config
+  namespace: litellm
+  labels:
+    app.kubernetes.io/name: litellm
+    app.kubernetes.io/component: config
+data:
+  config.yaml: |
+    model_list:
+      - model_name: gpt-4
+        litellm_params:
+          model: gpt-4
+          api_key: os.environ/OPENAI_API_KEY
+      - model_name: gpt-3.5-turbo
+        litellm_params:
+          model: gpt-3.5-turbo
+          api_key: os.environ/OPENAI_API_KEY
+      - model_name: claude-3-sonnet
+        litellm_params:
+          model: claude-3-sonnet-20240229
+          api_key: os.environ/ANTHROPIC_API_KEY
+      - model_name: azure-gpt-4
+        litellm_params:
+          model: azure/gpt-4
+          api_key: os.environ/AZURE_API_KEY
+          api_base: os.environ/AZURE_API_BASE
+      - model_name: gemini-pro
+        litellm_params:
+          model: gemini/gemini-pro
+          api_key: os.environ/GOOGLE_API_KEY
+    
+    general_settings:
+      master_key: os.environ/LITELLM_MASTER_KEY
+      ui_access_mode: "admin_only"
+      enforce_user_param: true
+      admin_email: os.environ/ADMIN_EMAIL
+      admin_password: os.environ/ADMIN_PASSWORD

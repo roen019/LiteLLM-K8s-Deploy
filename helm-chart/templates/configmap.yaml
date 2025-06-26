@@ -1,0 +1,11 @@
+{{- if .Values.litellm.config.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "litellm.fullname" . }}-config
+  labels:
+    {{- include "litellm.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    {{- .Values.litellm.config.content | nindent 4 }}
+{{- end }}
