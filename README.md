@@ -17,7 +17,6 @@ This repository contains environment-specific configurations for deploying LiteL
 ├── flux/                     # Flux GitOps configuration
 │   ├── helmrelease.yaml     # Production deployment
 │   ├── helmrelease-local.yaml
-│   └── azure-keyvault-integration.yaml
 ├── configmaps/               # Environment-specific configurations
 │   └── litellm-config.yaml
 ├── sealed-secrets/           # Encrypted secrets for production
@@ -134,31 +133,20 @@ This repository contains environment-specific configurations for deploying LiteL
 4. Verify SealedSecrets: `kubectl get sealedsecrets -n litellm`
 5. Check ConfigMaps: `kubectl get configmaps -n litellm`
 
-## Azure Key Vault Setup
-
-### Prerequisites
-1. **External Secrets Operator** installed in cluster
-2. **Azure Key Vault** with secrets stored
-3. **Managed Identity** with Key Vault access
 
 ### Deployment Steps
 
-1. **Apply External Secrets:**
-   ```bash
-   kubectl apply -f flux/azure-keyvault-integration.yaml
-   ```
-
-2. **Apply ConfigMap:**
+1. **Apply ConfigMap:**
    ```bash
    kubectl apply -f configmaps/litellm-config.yaml
    ```
 
-3. **Apply HelmRelease:**
+2. **Apply HelmRelease:**
    ```bash
    kubectl apply -f flux/helmrelease.yaml
    ```
 
-4. **Create Admin Users manually via UI:**
+3. **Create Admin Users manually via UI:**
    ```
    Login URL: https://litellm.yourdomain.com/ui
    ```
@@ -229,6 +217,11 @@ SELECT key_name, user_id, created_at, expires FROM litellm_keys;
 - Reduzierte Resources
 - Einfacher kubectl deploy
 
+### 2. Cluster Deployment (flux/)
+- SealedSecrets
+- Ingress mit TLS
+- Production Resources
+- GitOps mit Flux
 ### 2. Cluster Deployment (flux/)
 - SealedSecrets
 - Ingress mit TLS
