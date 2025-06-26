@@ -1,73 +1,86 @@
 # LiteLLM Kubernetes Deployment
 
-This repository contains environment-specific configurations for deploying LiteLLM on Kubernetes using a two-repository approach.
+This repository contains environment-specific configurations for deploying LiteLLM on Kubernetes.
 
 ## Repository Structure
 
-### Chart Repository (Separate Repo)
 ```
-helm-chart/                 # Reusable Helm chart for LiteLLM
-├── Chart.yaml
-├── values.yaml            # Default values only
-└── templates/
-```
-
-### Deployment Repository (This Repo)
-```
-├── local/                      # Lokale Entwicklung
-│   ├── manifests/             # Kubernetes Manifeste für lokales Testing
-│   ├── scripts/               # Deployment Scripts
-│   └── README.md
-├── flux/                      # Flux HelmRelease configuration
-│   └── helmrelease.yaml      # References external chart repository
-├── configmaps/                # Environment-specific configurations
+├── local-manifests/           # Local development with kubectl
+│   ├── namespace.yaml
+│   ├── secrets.yaml          # Plain text secrets for local testing
+│   ├── postgresql.yaml       # PostgreSQL for local development
+│   └── litellm.yaml         # LiteLLM deployment manifest
+├── helm-chart/               # Helm chart for LiteLLM
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+├── flux/                     # Flux GitOps configuration
+│   ├── helmrelease.yaml     # Production deployment
+│   ├── helmrelease-local.yaml
+│   └── azure-keyvault-integration.yaml
+├── configmaps/               # Environment-specific configurations
 │   └── litellm-config.yaml
-├── sealedsecrets/             # All secrets management (cluster only)
+├── sealed-secrets/           # Encrypted secrets for production
 │   ├── litellm-api-keys-sealedsecret.yaml
 │   ├── litellm-secrets-sealedsecret.yaml
 │   └── litellm-db-credentials.yaml
-├── scripts/                   # Übergreifende Scripts
-│   └── deploy-kubectl.sh
-└── README.md
+├── sealedsecrets/           # Alternative sealed secrets location
+│   └── litellm-db-credentials.yaml
+├── scripts/                 # Deployment scripts
+│   ├── deploy.bat          # Windows deployment script
+│   ├── deploy-kubectl.sh   # Unix deployment script
+│   └── database-queries.sql
+└── helm-values-local.yaml   # Local Helm values
 ```
 
 ## Prerequisites
 
 - Kubernetes cluster
-- Flux v2 installed
-- Sealed Secrets controller
+- Flux v2 installed (for GitOps deployment)
+- Sealed Secrets controller (for production)
 - Nginx Ingress Controller
 - Cert-manager (for TLS)
 
 ## Deployment Steps
+
+### Local Development
+
+1. **Quick deployment with kubectl:**
+   ```bash
+   # Windows
+   scripts\deploy.bat
+   
+   # Unix/Linux
+   chmod +x scripts/deploy-kubectl.sh
+   ./scripts/deploy-kubectl.sh
+   ```
+
+2. **Manual deployment:**
+   ```bash
+   kubectl apply -f local-manifests/namespace.yaml
+   kubectl apply -f local-manifests/secrets.yaml
+   kubectl apply -f local-manifests/postgresql.yaml
+   kubectl apply -f local-manifests/litellm.yaml
+   ```
+
+3. **Access the application:**
+   ```bash
+   kubectl port-forward svc/litellm 4000:4000 -n litellm
+   # Open: http://localhost:4000/ui
+   # Master Key: sk-local-master-key-123
+   ```
+
+### Production Deployment
 
 1. **Create namespace:**
    ```bash
    kubectl create namespace litellm
    ```
 
-2. **Generate and apply sealed secrets:**
-   ```bash
-   # For API keys
-   echo -n "sk-your-openai-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-api-keys --namespace=litellm
-   echo -n "sk-ant-your-anthropic-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-api-keys --namespace=litellm
-   echo -n "your-azure-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-api-keys --namespace=litellm
-   echo -n "https://your-resource.openai.azure.com/" | kubeseal --raw --from-file=/dev/stdin --name=litellm-api-keys --namespace=litellm
-   echo -n "your-google-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-api-keys --namespace=litellm
-   
-   # For admin auth
-   echo -n "your-master-key" | kubeseal --raw --from-file=/dev/stdin --name=litellm-admin-auth --namespace=litellm
-   echo -n "your-jwt-secret" | kubeseal --raw --from-file=/dev/stdin --name=litellm-admin-auth --namespace=litellm
-   
-   # For database credentials
-   echo -n "strong-postgres-password" | kubeseal --raw --from-file=/dev/stdin --name=litellm-db-credentials --namespace=litellm
-   echo -n "strong-user-password" | kubeseal --raw --from-file=/dev/stdin --name=litellm-db-credentials --namespace=litellm
-   ```
-
-3. **Apply configurations in order:**
+2. **Apply configurations in order:**
    ```bash
    # Apply SealedSecrets first
-   kubectl apply -f sealedsecrets/
+   kubectl apply -f sealed-secrets/
    
    # Apply ConfigMaps
    kubectl apply -f configmaps/
@@ -81,8 +94,9 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 ### Environment-Specific Files
 
 - **`configmaps/litellm-config.yaml`**: Contains LiteLLM configuration with model definitions
-- **`sealedsecrets/`**: All sensitive credentials encrypted with SealedSecrets
-- **`flux/helmrelease.yaml`**: Deployment configuration referencing external chart
+- **`sealed-secrets/`**: All sensitive credentials encrypted with SealedSecrets
+- **`flux/helmrelease.yaml`**: Production deployment configuration
+- **`local-manifests/`**: Local development manifests with plain text secrets
 
 ### Secret Structure
 
@@ -112,14 +126,6 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
 
-## Benefits of Two-Repository Approach
-
-1. **Chart Reusability**: Helm chart can be used across multiple environments
-2. **Security**: Secrets stay in deployment repository, never in chart repository
-3. **Environment Isolation**: Each environment has its own deployment repository
-4. **GitOps**: Clear separation of concerns for GitOps workflows
-5. **Version Management**: Chart and deployment configurations can be versioned independently
-
 ## Troubleshooting
 
 1. Check pod logs: `kubectl logs -n litellm deployment/litellm`
@@ -134,19 +140,6 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 1. **External Secrets Operator** installed in cluster
 2. **Azure Key Vault** with secrets stored
 3. **Managed Identity** with Key Vault access
-
-### Azure Key Vault Secrets
-
-Store these secrets in your Azure Key Vault:
-- `litellm-master-key`: Strong master key for LiteLLM
-- `litellm-jwt-secret`: JWT signing secret
-- `openai-api-key`: OpenAI API key
-- `anthropic-api-key`: Anthropic API key
-- `azure-openai-key`: Azure OpenAI API key
-- `azure-openai-endpoint`: Azure OpenAI endpoint URL
-- `google-ai-key`: Google AI Studio API key
-- `postgres-admin-password`: PostgreSQL admin password
-- `litellm-db-user-password`: LiteLLM database user password
 
 ### Deployment Steps
 
@@ -228,24 +221,9 @@ SELECT user_email, user_role, created_at FROM litellm_users;
 SELECT key_name, user_id, created_at, expires FROM litellm_keys;
 ```
 
-### Vorteile der Database-Integration:
-- 🔒 **Persistent Users** - Überleben Pod-Restarts
-- 📊 **Usage Tracking** - Vollständige Logs und Analytics
-- 👥 **Team Management** - Gruppen-basierte Zugriffskontrollen
-- 💰 **Budget Controls** - Pro-User Spending Limits
-- ⚡ **Rate Limiting** - Pro-User Request Limits
-- 🔄 **API Key Management** - Rotation und Verwaltung
-
-## Security Benefits
-
-✅ **Secrets encrypted with SealedSecrets**  
-✅ **GitOps-friendly secret management**  
-✅ **Database for persistent user storage**  
-✅ **4-6 Admin Users** mit eigenen Passwörtern und API Keys
-
 ## Deployment Optionen
 
-### 1. Lokale Entwicklung (local/)
+### 1. Lokale Entwicklung (local-manifests/)
 - Plain text secrets
 - LoadBalancer service
 - Reduzierte Resources
