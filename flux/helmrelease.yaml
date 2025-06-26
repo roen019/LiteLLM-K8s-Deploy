@@ -36,14 +36,14 @@ spec:
         cert-manager.io/cluster-issuer: "letsencrypt-prod"
         nginx.ingress.kubernetes.io/ssl-redirect: "true"
       hosts:
-        - host: litellm.yourdomain.com
+        - host: litellm.example.com
           paths:
             - path: /
               pathType: Prefix
       tls:
         - secretName: litellm-tls
           hosts:
-            - litellm.yourdomain.com
+            - litellm.example.com
     
     # Enable PostgreSQL with SealedSecrets
     postgresql:

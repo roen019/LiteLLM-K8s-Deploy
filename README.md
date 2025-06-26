@@ -148,10 +148,10 @@ This repository contains environment-specific configurations for deploying LiteL
 
 3. **Create Admin Users manually via UI:**
    ```
-   Login URL: https://litellm.yourdomain.com/ui
+   Login URL: https://litellm.example.com/ui
    ```
 
-## User Management in Database
+### User Management in Database
 
 ### Automatische Speicherung
 Wenn PostgreSQL aktiviert ist, speichert LiteLLM automatisch alle User-Daten:
@@ -184,11 +184,11 @@ LiteLLM erstellt automatisch diese Tabellen:
 ### User über API erstellen:
 ```bash
 # Admin User erstellen
-curl -X POST "https://litellm.yourdomain.com/user/new" \
+curl -X POST "https://litellm.example.com/user/new" \
   -H "Authorization: Bearer YOUR_MASTER_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_email": "admin@company.com",
+    "user_email": "admin@example.com",
     "user_role": "proxy_admin",
     "password": "SecurePassword123!",
     "max_budget": 100.0,
