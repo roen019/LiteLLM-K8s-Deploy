@@ -14,13 +14,20 @@ helm-chart/                 # Reusable Helm chart for LiteLLM
 
 ### Deployment Repository (This Repo)
 ```
-├── flux/                   # Flux HelmRelease configuration
-│   └── helmrelease.yaml   # References external chart repository
-├── configmaps/             # Environment-specific configurations
+├── local/                      # Lokale Entwicklung
+│   ├── manifests/             # Kubernetes Manifeste für lokales Testing
+│   ├── scripts/               # Deployment Scripts
+│   └── README.md
+├── flux/                      # Flux HelmRelease configuration
+│   └── helmrelease.yaml      # References external chart repository
+├── configmaps/                # Environment-specific configurations
 │   └── litellm-config.yaml
-├── sealedsecrets/          # All secrets management
-│   ├── litellm-api-keys.yaml
-│   └── litellm-admin-auth.yaml
+├── sealedsecrets/             # All secrets management (cluster only)
+│   ├── litellm-api-keys-sealedsecret.yaml
+│   ├── litellm-secrets-sealedsecret.yaml
+│   └── litellm-db-credentials.yaml
+├── scripts/                   # Übergreifende Scripts
+│   └── deploy-kubectl.sh
 └── README.md
 ```
 
@@ -235,3 +242,17 @@ SELECT key_name, user_id, created_at, expires FROM litellm_keys;
 ✅ **GitOps-friendly secret management**  
 ✅ **Database for persistent user storage**  
 ✅ **4-6 Admin Users** mit eigenen Passwörtern und API Keys
+
+## Deployment Optionen
+
+### 1. Lokale Entwicklung (local/)
+- Plain text secrets
+- LoadBalancer service
+- Reduzierte Resources
+- Einfacher kubectl deploy
+
+### 2. Cluster Deployment (flux/)
+- SealedSecrets
+- Ingress mit TLS
+- Production Resources
+- GitOps mit Flux

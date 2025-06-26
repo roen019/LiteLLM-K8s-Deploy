@@ -55,9 +55,9 @@ litellm:
   # Environment variables
   env: {}
   
-  # Master key for LiteLLM (will be read from secret created by External Secrets)
+  # Master key for LiteLLM (korrigiert für cluster deployment)
   masterKeySecret:
-    name: "litellm-admin-auth"  # This will be created by External Secrets Operator
+    name: "litellm-enterprise-admin-auth"  # Angepasst an SealedSecret Namen
     key: "master-key"
   
   # Configuration file
@@ -68,16 +68,16 @@ litellm:
       general_settings:
         master_key: os.environ/LITELLM_MASTER_KEY
 
-  # Secrets configuration (references to secrets created by External Secrets Operator)
+  # Secrets configuration (korrigiert für cluster deployment)
   secrets:
-    - name: "litellm-api-keys"  # Created by External Secrets from Azure Key Vault
+    - name: "litellm-enterprise-api-keys"  # Angepasst an SealedSecret Namen
       keys:
         - "openai-api-key"
         - "anthropic-api-key"
         - "azure-api-key"
         - "azure-api-base"
         - "google-api-key"
-    - name: "litellm-admin-auth"  # Created by External Secrets from Azure Key Vault
+    - name: "litellm-enterprise-admin-auth"  # Angepasst an SealedSecret Namen
       keys:
         - "master-key"
         - "jwt-secret"

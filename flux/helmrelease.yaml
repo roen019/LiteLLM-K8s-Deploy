@@ -61,20 +61,20 @@ spec:
           size: 20Gi
     
     litellm:
-      # Use SealedSecrets
+      # Use SealedSecrets (korrigierte Namen)
       masterKeySecret:
-        name: "litellm-admin-auth"
+        name: "litellm-enterprise-admin-auth"  # Angepasst an SealedSecret Namen
         key: "master-key"
       
       secrets:
-        - name: "litellm-api-keys"
+        - name: "litellm-enterprise-api-keys"  # Angepasst an SealedSecret Namen
           keys:
             - "openai-api-key"
             - "anthropic-api-key"
             - "azure-api-key"
             - "azure-api-base"
             - "google-api-key"
-        - name: "litellm-admin-auth"
+        - name: "litellm-enterprise-admin-auth"  # Angepasst an SealedSecret Namen
           keys:
             - "master-key"
             - "jwt-secret"
