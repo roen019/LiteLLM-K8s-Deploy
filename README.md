@@ -16,20 +16,17 @@ This repository contains environment-specific configurations for deploying LiteL
 │   └── templates/
 ├── flux/                     # Flux GitOps configuration
 │   ├── helmrelease.yaml     # Production deployment
-│   ├── helmrelease-local.yaml
+│   └── helmrelease-local.yaml
 ├── configmaps/               # Environment-specific configurations
 │   └── litellm-config.yaml
 ├── sealed-secrets/           # Encrypted secrets for production
 │   ├── litellm-api-keys-sealedsecret.yaml
 │   ├── litellm-secrets-sealedsecret.yaml
 │   └── litellm-db-credentials.yaml
-├── sealedsecrets/           # Alternative sealed secrets location
-│   └── litellm-db-credentials.yaml
-├── scripts/                 # Deployment scripts
-│   ├── deploy.bat          # Windows deployment script
-│   ├── deploy-kubectl.sh   # Unix deployment script
-│   └── database-queries.sql
-└── helm-values-local.yaml   # Local Helm values
+└── scripts/                 # Deployment scripts
+    ├── deploy.bat          # Windows deployment script
+    ├── deploy-kubectl.sh   # Unix deployment script
+    └── database-queries.sql
 ```
 
 ## Prerequisites
@@ -219,6 +216,9 @@ SELECT key_name, user_id, created_at, expires FROM litellm_keys;
 
 ### 2. Cluster Deployment (flux/)
 - SealedSecrets
+- Ingress mit TLS
+- Production Resources
+- GitOps mit Flux
 - Ingress mit TLS
 - Production Resources
 - GitOps mit Flux
